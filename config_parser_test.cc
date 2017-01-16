@@ -27,7 +27,8 @@ TEST_F(NginxStringConfigTest, SyntaxErrorConfig) {
     EXPECT_FALSE(ParseString("server {listen 80;")) << "Error: failed to detect missing '}'";
     EXPECT_FALSE(ParseString("listen 80;}")) << "Error: failed to detect missing '{'";
     EXPECT_FALSE(ParseString("server {listen 80}")) << "Error: failed to detect missing semicolon within braces";
-    EXPECT_FALSE(ParseString("server {\nserver{listen 80;}")) << "Error: failed to detect error in nested braces";
+    EXPECT_FALSE(ParseString("server {\n\
+                                server{listen 80;}")) << "Error: failed to detect error in nested braces";
 }
 
 TEST_F(NginxStringConfigTest, ValidSyntaxConfig) {
@@ -35,9 +36,33 @@ TEST_F(NginxStringConfigTest, ValidSyntaxConfig) {
     EXPECT_TRUE(ParseString("foo bar;")) << "Error: failed to correctly parse valid string";
     EXPECT_EQ(1, out_config_.statements_.size()) << "Error: tokens parsed into incorrect number of statements";
     EXPECT_EQ("foo", out_config_.statements_.at(0)->tokens_.at(0)) << "Error: incorrectly tokenized statement";
+    EXPECT_TRUE(ParseString("foo bar; baz bop;")) << "Error: failed to detect one line, two statements";
 }
 
 TEST_F(NginxStringConfigTest, NestedConfig) {
-    EXPECT_TRUE(ParseString("#test\nserver {\nserver {listen 80;}\n}")) << "Error: failed to parse doubly nested braces + comment correctly";
-    EXPECT_TRUE(ParseString("server {\nserver {\n server {listen 80;}\n foo bar;\n}\n}")) << "Error, failed to parse complex expression correctly";
+    // tests nested cases
+    EXPECT_TRUE(ParseString("#test\n\
+                              server {\n\
+                                server {listen 80;}\n\
+                                     }")) << "Error: failed to parse doubly nested braces + comment correctly";
+    EXPECT_TRUE(ParseString("server {\n\
+                                server {\n\
+                                  server {listen 80;}\n\
+                                    foo bar;\n\
+                                          }\n\
+                                        }")) << "Error, failed to parse complex expression correctly";
+}
+
+TEST_F(NginxStringConfigTest, CommentsConfig) {
+    // test comment cases
+    EXPECT_TRUE(ParseString("foo; # this is a comment }{;;\n\
+                            bar;")) << "Error: failed to detect this comment";
+}
+
+TEST_F(NginxStringConfigTest, QuotesConfig) {
+    // test quotations
+    EXPECT_TRUE(ParseString("log_format   main '$remote_addr - $remote_user [$time_local]  $status '\
+                            '\"$request\" $body_bytes_sent \"$http_referer\" '\
+                            '\"$http_user_agent\" \"$http_x_forwarded_for\"';")) << "Error: failed to detect valid double quotes";
+    EXPECT_TRUE(ParseString("foo = \"Hello, Frank!\";")) << "Error: failed to detect valid double quotes";
 }
