@@ -1,4 +1,5 @@
 *.o
 *.a
+*.dSYM
 config_parser_test
 config_parser
