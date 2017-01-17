@@ -152,7 +152,7 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
   config_stack.push(config);
   TokenType last_token_type = TOKEN_TYPE_START;
   TokenType token_type;
-  // counter to keep track of blocks
+  // Initialize block_lvl, counter variable to keep track of blocks
   int block_lvl = 0;
   while (true) {
     std::string token;
@@ -203,12 +203,13 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
       block_lvl++;
     } else if (token_type == TOKEN_TYPE_END_BLOCK) {
       // in addition to checking statement_end, also need to check block_end
-      if (last_token_type != TOKEN_TYPE_STATEMENT_END && last_token_type != TOKEN_TYPE_END_BLOCK) {
+      if (last_token_type != TOKEN_TYPE_STATEMENT_END 
+          && last_token_type != TOKEN_TYPE_END_BLOCK) {
         // Error.
         break;
       }
       config_stack.pop();
-      if(block_lvl-- < 0) {
+      if (block_lvl-- < 0) {
         // Error.
         break;
       }
